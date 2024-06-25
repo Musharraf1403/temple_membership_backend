@@ -22,6 +22,7 @@ exports.createMembership = async (req, res) => {
             name: req.body.name,
             phone: req.body.phone,
             email: req.body.email,
+            address: req.body.address,
             membership_id: membersCount + 1
         });
         if (membership) {
@@ -44,6 +45,7 @@ exports.updateMembership = async (req, res) => {
         let body = {
             name: req.body.name,
             email: req.body.email,
+            address: req.body.address,
             phone: req.body.phone,
             transaction_details: req.body.transaction_details,
         }

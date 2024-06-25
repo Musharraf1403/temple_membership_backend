@@ -10,6 +10,9 @@ const MembershipSchema = new mongoose.Schema({
     phone: {
         type: String
     },
+    address: {
+        type: String
+    },
     transaction_details: {
         type: String
     },
