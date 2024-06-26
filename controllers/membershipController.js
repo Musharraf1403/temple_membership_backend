@@ -42,14 +42,40 @@ exports.createMembership = async (req, res) => {
 
 exports.updateMembership = async (req, res) => {
     try {
-        let body = {
-            name: req.body.name,
-            email: req.body.email,
-            address: req.body.address,
-            phone: req.body.phone,
-            transaction_details: req.body.transaction_details,
+        let member = await Membership.findOne({ _id: req.params.id });
+        if (member) {
+            let approveMessage = `Dear ${member.name},\n\nAttached is your membership ID card!.\n`;
+            let cancelMessage = `Dear ${member.name},\n\nYour Membership got cancelled!.\n`;
+            if (member.approved != req.body.approved) {
+                if (req.body.approved) {
+                    member.approval_date = new Date().toISOString();
+                    member.expiry_date = new Date(new Date().setDate(new Date().getDate() + 365)).toISOString();
+                    let idCard = await generateMembershipIdCard(member);
+                    let attachments = [
+                        {
+                            filename: 'Membership_ID_Card.pdf',
+                            content: idCard,
+                            contentType: 'application/pdf',
+                        },
+                    ];
+                    await sendEmail(member.email, "Your Membership ID card", approveMessage, attachments)
+                } else {
+                    member.expiry_date = new Date();
+                    await sendEmail(member.email, "Membership Cancelled!", cancelMessage)
+                }
+            }
+            member.name = req.body.name;
+            member.email = req.body.email;
+            member.address = req.body.address;
+            member.phone = req.body.phone;
+            member.transaction_details = req.body.transaction_details;
+            member.payment_mode = req.body.payment_mode;
+            member.approved = req.body.approved;
+            member.save();
+            return res.status(200).json({ message: req.body.approved ? "Membership approved!" : "Membership cancelled!" });
+        } else {
+            res.status(400).json({ message: "Member not found!" });
         }
-        let member = await Membership.findOneAndUpdate({ _id: req.params.id }, body);
         if (member)
             return res.status(200).json({ message: "Membership updated!" });
         return res.status(500).json({ message: "Not able to update member!" });
@@ -64,12 +90,14 @@ exports.manageMembership = async (req, res) => {
         let member = await Membership.findOne({ _id: req.params.id });
         if (member) {
             member.approved = req.body.approved;
-            let approveMessage = 'Dear ${member.name},\n\nAttached is your membership ID card!.\n';
-            let cancelMessage = "Dear ${member.name},\n\nYour Membership got cancelled!.\n";
+            let approveMessage = `Dear ${member.name},\n\nAttached is your membership ID card!.\n`;
+            let cancelMessage = `Dear ${member.name},\n\nYour Membership got cancelled!.\n`;
             if (req.body.approved) {
                 member.approval_date = new Date().toISOString();
                 member.expiry_date = new Date(new Date().setDate(new Date().getDate() + 365)).toISOString();
-                let idCard = generateMembershipIdCard(member);
+                member.payment_mode = req.body.payment_mode;
+                member.transaction_details = req.body.transaction_details;
+                let idCard = await generateMembershipIdCard(member);
                 let attachments = [
                     {
                         filename: 'Membership_ID_Card.pdf',
@@ -146,7 +174,7 @@ const generateMembershipIdCard = async (member) => {
 
     page.drawText(`Expiry Date: ${new Date(member.expiry_date).toLocaleDateString()}`, {
         x: 50,
-        y: 80,
+        y: 60,
         size: 15,
     });
 

@@ -16,6 +16,9 @@ const MembershipSchema = new mongoose.Schema({
     transaction_details: {
         type: String
     },
+    payment_mode: {
+        type: String
+    },
     approved: {
         type: Boolean,
         default: false

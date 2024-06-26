@@ -3,6 +3,7 @@ const connectDB = require('./config/db');
 const bodyParser = require('body-parser');
 const authRoutes = require('./routes/auth');
 const membershipRoutes = require('./routes/membership');
+const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
@@ -12,6 +13,8 @@ connectDB();
 
 // Init Middleware
 app.use(bodyParser.json());
+
+app.use(cors());
 
 // Define Routes
 app.use('/api/auth', authRoutes);
