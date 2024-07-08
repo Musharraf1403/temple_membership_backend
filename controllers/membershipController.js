@@ -25,7 +25,8 @@ exports.createMembership = async (req, res) => {
             email: req.body.email,
             address: req.body.address,
             membership_id: membersCount + 1,
-            function_date: req.body.function_date
+            function_date: req.body.function_date,
+            pincode: req.body.pincode
         });
         if (membership) {
             let subject = "Temple Membership Joining";
@@ -74,6 +75,7 @@ exports.updateMembership = async (req, res) => {
             member.payment_mode = req.body.payment_mode;
             member.approved = req.body.approved;
             member.function_date = req.body.function_date;
+            member.pincode = req.body.pincode;
             member.save();
             return res.status(200).json({ message: req.body.approved ? "Membership approved!" : "Membership cancelled!" });
         } else {
