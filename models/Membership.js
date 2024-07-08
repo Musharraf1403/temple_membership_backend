@@ -10,6 +10,12 @@ const MembershipSchema = new mongoose.Schema({
     phone: {
         type: String
     },
+    pincode: {
+        type: String
+    },
+    function_date: {
+        type: Date
+    },
     address: {
         type: String
     },

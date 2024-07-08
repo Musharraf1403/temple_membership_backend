@@ -1,6 +1,7 @@
 const express = require('express');
 const Membership = require('../models/Membership');
 const sendEmail = require('../utils/sendEmail');
+const _ = require('lodash');
 const { PDFDocument, rgb } = require('pdf-lib');
 
 exports.createMembership = async (req, res) => {
@@ -23,7 +24,8 @@ exports.createMembership = async (req, res) => {
             phone: req.body.phone,
             email: req.body.email,
             address: req.body.address,
-            membership_id: membersCount + 1
+            membership_id: membersCount + 1,
+            function_date: req.body.function_date
         });
         if (membership) {
             let subject = "Temple Membership Joining";
@@ -71,6 +73,7 @@ exports.updateMembership = async (req, res) => {
             member.transaction_details = req.body.transaction_details;
             member.payment_mode = req.body.payment_mode;
             member.approved = req.body.approved;
+            member.function_date = req.body.function_date;
             member.save();
             return res.status(200).json({ message: req.body.approved ? "Membership approved!" : "Membership cancelled!" });
         } else {
@@ -139,6 +142,18 @@ exports.deleteMembership = async (req, res) => {
         console.log("Member deleted!");
         return res.status(500).json({ message: "Member not found!" });
     } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+exports.getBlockedDates = async (req, res) => {
+    try{
+        let dates = await Membership.find({function_date: {$nin: [null]}}, {function_date: 1}).lean();
+        if(dates && dates.length) {
+            return res.status(200).json({blocked_dates: _.map(dates, 'function_date')});
+        }
+        return res.status(200).json({blocked_dates: []});
+    } catch(error){
         res.status(500).json({ message: error.message });
     }
 }
