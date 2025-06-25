@@ -26,7 +26,9 @@ exports.createMembership = async (req, res) => {
             address: req.body.address,
             membership_id: membersCount + 1,
             function_date: req.body.function_date,
-            pincode: req.body.pincode
+            pincode: req.body.pincode,
+            package_plan: req.body.package_plan,
+            package_price: req.body.package_price
         });
         if (membership) {
             let subject = "Temple Membership Joining";
@@ -76,6 +78,8 @@ exports.updateMembership = async (req, res) => {
             member.approved = req.body.approved;
             member.function_date = req.body.function_date;
             member.pincode = req.body.pincode;
+            member.package_plan = req.body.package_plan;
+            member.package_price = req.body.package_price;
             member.save();
             return res.status(200).json({ message: req.body.approved ? "Membership approved!" : "Membership cancelled!" });
         } else {
@@ -99,7 +103,10 @@ exports.manageMembership = async (req, res) => {
             let cancelMessage = `Dear ${member.name},\n\nYour Membership got cancelled!.\n`;
             if (req.body.approved) {
                 member.approval_date = new Date().toISOString();
-                member.expiry_date = new Date(new Date().setDate(new Date().getDate() + 365)).toISOString();
+                if (member.package_plan === 'yearly')
+                    member.expiry_date = new Date(new Date().setDate(new Date().getDate() + 365)).toISOString();
+                else
+                    member.expiry_date = new Date(new Date().setDate(new Date().getDate() + 30)).toISOString();
                 member.payment_mode = req.body.payment_mode;
                 member.transaction_details = req.body.transaction_details;
                 let idCard = await generateMembershipIdCard(member);
@@ -149,13 +156,13 @@ exports.deleteMembership = async (req, res) => {
 }
 
 exports.getBlockedDates = async (req, res) => {
-    try{
-        let dates = await Membership.find({function_date: {$nin: [null]}}, {function_date: 1}).lean();
-        if(dates && dates.length) {
-            return res.status(200).json({blocked_dates: _.map(dates, 'function_date')});
+    try {
+        let dates = await Membership.find({ function_date: { $nin: [null] } }, { function_date: 1 }).lean();
+        if (dates && dates.length) {
+            return res.status(200).json({ blocked_dates: _.map(dates, 'function_date') });
         }
-        return res.status(200).json({blocked_dates: []});
-    } catch(error){
+        return res.status(200).json({ blocked_dates: [] });
+    } catch (error) {
         res.status(500).json({ message: error.message });
     }
 }

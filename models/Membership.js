@@ -39,6 +39,12 @@ const MembershipSchema = new mongoose.Schema({
     },
     expiry_date: {
         type: Date
+    },
+    package_plan: {
+        type: String
+    },
+    package_price: {
+        type: Number
     }
 });
 
