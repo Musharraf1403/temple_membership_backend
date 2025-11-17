@@ -37,9 +37,8 @@ exports.createMembership = async (req, res) => {
             await membership.save();
             res.status(200).json({ message: "Mail sent to the given mail id." });
         } else {
-            res.status(400).json({ message: "Not able to create membership" });
+            res.status(500).json({ message: "Member creation failed" });
         }
-
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

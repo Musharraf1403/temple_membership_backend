@@ -1,11 +1,13 @@
 const nodemailer = require('nodemailer');
 
-const sendEmail = async (to, subject, text, attachments=[]) => {
+const sendEmail = async (to, subject, text, attachments = []) => {
     let transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: "smtp.gmail.com",
+        port: 465,
+        secure: true, // must be true for Gmail on Render
         auth: {
-            user: process.env.EMAIL,
-            pass: process.env.EMAIL_PASSWORD
+            user: process.env.EMAIL,            // your Gmail
+            pass: process.env.EMAIL_PASSWORD    // App Password only
         }
     });
 
@@ -14,14 +16,16 @@ const sendEmail = async (to, subject, text, attachments=[]) => {
         to,
         subject,
         text,
-        attachments: attachments
+        attachments
     };
 
     try {
         await transporter.sendMail(mailOptions);
         console.log('Email sent');
+        return { success: true };
     } catch (error) {
         console.error('Error sending email:', error);
+        throw { success: false, message: 'Error sending email' };
     }
 };
 
