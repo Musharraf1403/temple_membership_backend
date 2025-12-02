@@ -1,18 +1,18 @@
-const nodemailer = require('nodemailer');
+const nodemailer = require("nodemailer");
 
 const sendEmail = async (to, subject, text, attachments = []) => {
-    let transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 465,
-        secure: true, // must be true for Gmail on Render
+    const transporter = nodemailer.createTransport({
+        host: process.env.BREVO_HOST,
+        port: process.env.BREVO_PORT,
+        secure: false,
         auth: {
-            user: process.env.EMAIL,            // your Gmail
-            pass: process.env.EMAIL_PASSWORD    // App Password only
+            user: process.env.BREVO_USER,
+            pass: process.env.BREVO_PASS
         }
     });
 
-    let mailOptions = {
-        from: process.env.EMAIL,
+    const mailOptions = {
+        from: process.env.BREVO_FROM,
         to,
         subject,
         text,
@@ -21,11 +21,11 @@ const sendEmail = async (to, subject, text, attachments = []) => {
 
     try {
         await transporter.sendMail(mailOptions);
-        console.log('Email sent');
-        return { success: true };
+        console.log("Email sent successfully");
+        return true;
     } catch (error) {
-        console.error('Error sending email:', error);
-        throw { success: false, message: 'Error sending email' };
+        console.error("Error sending email:", error);
+        throw {success: false, message: 'Error sending email'}; // important for controller to catch
     }
 };
 

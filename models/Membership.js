@@ -25,6 +25,11 @@ const MembershipSchema = new mongoose.Schema({
     payment_mode: {
         type: String
     },
+    payment_status: {
+        type: String,
+        enum: ['Pending', 'Completed', 'Failed'],
+        default: 'Pending'
+    },
     approved: {
         type: Boolean,
         default: false
@@ -45,7 +50,11 @@ const MembershipSchema = new mongoose.Schema({
     },
     package_price: {
         type: Number
-    }
+    },
+    cancelled_sessions: [{
+        type: String,
+        default: []
+    }]
 });
 
 module.exports = mongoose.model('Membership', MembershipSchema);
