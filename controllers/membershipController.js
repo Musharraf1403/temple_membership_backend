@@ -166,7 +166,7 @@ exports.getSessionDetails = async (req, res) => {
 
         // Retrieve Stripe session
         const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['payment_intent', 'customer'] });
-        
+
         // Find membership by metadata
         const membershipId = session.metadata && session.metadata.membershipId;
         let memberData = null;
@@ -218,7 +218,7 @@ exports.getPendingMembership = async (req, res) => {
             // It's an email
             member = await Membership.findOne({ email: identifier, approved: false }).lean();
         }
-        
+
         if (!member) return res.status(404).json({ message: 'No pending membership found' });
 
         return res.status(200).json({
@@ -306,47 +306,81 @@ exports.retryPayment = async (req, res) => {
 }
 
 // Stripe webhook handler
-exports.handleStripeWebhook = async (req, res) => {
+exports.handleStripeWebhook = (req, res) => {
     const sig = req.headers['stripe-signature'];
+    let event;
+
     try {
-        const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-
-        if (event.type === 'checkout.session.completed') {
-            const session = event.data.object;
-            const full = await stripe.checkout.sessions.retrieve(session.id, { expand: ['subscription', 'payment_intent'] });
-            const membershipId = session.metadata && session.metadata.membershipId;
-            
-            if (membershipId) {
-                let member = await Membership.findById(membershipId);
-                
-                if (member) {
-                    member.payment_status = 'Completed';
-                    member.payment_mode = 'card';
-                    member.transaction_details = JSON.stringify({ session: session.id, subscription: full.subscription ? full.subscription.id : null, payment_intent: full.payment_intent ? full.payment_intent.id : null });
-                    member.approved = true;
-                    member.approval_date = new Date();
-                    if (member.package_plan === 'yearly') member.expiry_date = new Date(new Date().setDate(new Date().getDate() + 365));
-                    else member.expiry_date = new Date(new Date().setDate(new Date().getDate() + 30));
-                    await member.save();
-
-                    try {
-                        let idCard = await generateMembershipIdCard(member);
-                        let attachments = [{ filename: 'Membership_ID_Card.pdf', content: Buffer.from(idCard), contentType: 'application/pdf' }];
-                        const message = `Dear ${member.name},\n\nThank you for your payment. Your membership is now active.`;
-                        await sendEmail(member.email, 'Payment received - Membership active', message, attachments);
-                    } catch (emailError) {
-                        console.error('Failed to send acknowledgement email:', emailError);
-                    }
-                }
-            }
-        }
-
-        res.json({ received: true });
+        event = stripe.webhooks.constructEvent(
+            req.body,
+            sig,
+            process.env.STRIPE_WEBHOOK_SECRET
+        );
     } catch (err) {
-        console.error('Webhook error:', err);
-        return res.status(400).send(`Webhook Error: ${err.message || String(err)}`);
+        console.error('Webhook signature error:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
     }
-}
+
+    // ✅ RESPOND IMMEDIATELY
+    res.status(200).json({ received: true });
+
+    // 🔥 DO ALL HEAVY WORK AFTER RESPONSE
+    process.nextTick(async () => {
+        if (event.type !== 'checkout.session.completed') return;
+
+        try {
+            const session = event.data.object;
+            const membershipId = session.metadata?.membershipId;
+            if (!membershipId) return;
+
+            const full = await stripe.checkout.sessions.retrieve(session.id, {
+                expand: ['subscription', 'payment_intent'],
+            });
+
+            const member = await Membership.findById(membershipId);
+            if (!member) return;
+
+            member.payment_status = 'Completed';
+            member.payment_mode = 'card';
+            member.transaction_details = JSON.stringify({
+                session: session.id,
+                subscription: full.subscription?.id || null,
+                payment_intent: full.payment_intent?.id || null,
+            });
+            member.approved = true;
+            member.approval_date = new Date();
+
+            member.expiry_date =
+                member.package_plan === 'yearly'
+                    ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+                    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+            await member.save();
+
+            // 🔹 Email (non-critical)
+            try {
+                const idCard = await generateMembershipIdCard(member);
+                await sendEmail(
+                    member.email,
+                    'Payment received - Membership active',
+                    `Dear ${member.name},\n\nThank you for your payment. Your membership is now active.`,
+                    [
+                        {
+                            filename: 'Membership_ID_Card.pdf',
+                            content: Buffer.from(idCard),
+                            contentType: 'application/pdf',
+                        },
+                    ]
+                );
+            } catch (emailError) {
+                console.error('Email failed (ignored):', emailError.message);
+            }
+        } catch (err) {
+            console.error('Async webhook processing failed:', err);
+        }
+    });
+};
+
 
 const generateMembershipIdCard = async (member) => {
     const pdfDoc = await PDFDocument.create();
