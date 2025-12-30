@@ -359,18 +359,23 @@ exports.handleStripeWebhook = (req, res) => {
 
             // 🔹 Email (non-critical)
             try {
-                const idCard = await generateMembershipIdCard(member);
+                const emailBody = `
+Dear ${member.name},
+
+We are pleased to inform you that your membership with Liverpool Murugan Temple has been successfully activated.
+Your membership will remain valid until ${expiry_date}.
+
+We sincerely thank you for your continued support and valued association with the temple.
+Your contribution helps us uphold our spiritual, cultural, and community activities.
+May Lord Murugan shower His divine blessings upon you and your family.
+
+Yours sincerely,
+Liverpool Murugan Temple
+`;
                 await sendEmail(
                     member.email,
-                    'Payment received - Membership active',
-                    `Dear ${member.name},\n\nThank you for your payment. Your membership is now active.`,
-                    [
-                        {
-                            filename: 'Membership_ID_Card.pdf',
-                            content: Buffer.from(idCard),
-                            contentType: 'application/pdf',
-                        },
-                    ]
+                    'Liverpool Murugan Temple - Membership Payment Received',
+                    emailBody
                 );
             } catch (emailError) {
                 console.error('Email failed (ignored):', emailError.message);
