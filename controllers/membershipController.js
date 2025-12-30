@@ -363,7 +363,7 @@ exports.handleStripeWebhook = (req, res) => {
 Dear ${member.name},
 
 We are pleased to inform you that your membership with Liverpool Murugan Temple has been successfully activated.
-Your membership will remain valid until ${expiry_date}.
+Your membership will remain valid until ${member.expiry_date}.
 
 We sincerely thank you for your continued support and valued association with the temple.
 Your contribution helps us uphold our spiritual, cultural, and community activities.
