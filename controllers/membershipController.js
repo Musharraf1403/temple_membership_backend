@@ -11,21 +11,34 @@ exports.createMembership = async (req, res) => {
         let existing = await Membership.findOne({ $or: [{ phone }, { email }] });
         if (existing) return res.status(400).json({ message: 'Member with same email or phone number already exists!' });
 
-        // Save member first
-        const membersCount = await Membership.countDocuments();
+        // Generate a unique membership_id: LMT-YYYY-<random 6 chars>
+        function generateUniqueMembershipId() {
+            const year = new Date().getFullYear();
+            const randomStr = Math.random().toString(36).substr(2, 6).toUpperCase();
+            return `LMT-${year}-${randomStr}`;
+        }
+
+        let uniqueMembershipId;
+        let isUnique = false;
+        // Ensure uniqueness in DB (very unlikely to collide, but check)
+        while (!isUnique) {
+            uniqueMembershipId = generateUniqueMembershipId();
+            const exists = await Membership.findOne({ membership_id: uniqueMembershipId });
+            if (!exists) isUnique = true;
+        }
+
         const membership = new Membership({
             name,
             phone,
             email,
             address,
-            membership_id: String(membersCount + 1),
+            membership_id: uniqueMembershipId,
             function_date,
             pincode,
             package_plan,
             package_price
         });
         await membership.save();
-        console.log(package_price, 'package_price');
         // Prepare Stripe Checkout session
         const unitAmount = Math.round((package_price || 0) * 100);
         const currency = process.env.STRIPE_CURRENCY || 'usd';
