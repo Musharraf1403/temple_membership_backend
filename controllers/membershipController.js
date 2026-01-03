@@ -6,10 +6,9 @@ const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET);
 exports.createMembership = async (req, res) => {
     try {
-        console.log('STRIPE_SECRET present:', !!process.env.STRIPE_SECRET);
         const { name, phone, email, address, function_date, pincode, package_plan, package_price } = req.body;
-        let existing = await Membership.findOne({ $or: [{ phone }, { email }] });
-        if (existing) return res.status(400).json({ message: 'Member with same email or phone number already exists!' });
+        // let existing = await Membership.findOne({ $or: [{ phone }, { email }] });
+        // if (existing) return res.status(400).json({ message: 'Member with same email or phone number already exists!' });
 
         // Generate a unique membership_id: LMT-YYYY-<random 6 chars>
         function generateUniqueMembershipId() {
