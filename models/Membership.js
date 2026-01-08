@@ -54,7 +54,8 @@ const MembershipSchema = new mongoose.Schema({
     cancelled_sessions: [{
         type: String,
         default: []
-    }]
+    }],
+    member: { type: mongoose.Schema.Types.ObjectId, ref: 'Member', required: true }
 });
 
 module.exports = mongoose.model('Membership', MembershipSchema);

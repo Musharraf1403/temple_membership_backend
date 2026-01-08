@@ -1,4 +1,5 @@
 const Membership = require('../models/Membership');
+const Member = require('../models/Member');
 const sendEmail = require('../utils/sendEmail');
 const _ = require('lodash');
 const { PDFDocument, rgb } = require('pdf-lib');
@@ -7,8 +8,20 @@ const stripe = Stripe(process.env.STRIPE_SECRET);
 exports.createMembership = async (req, res) => {
     try {
         const { name, phone, email, address, function_date, pincode, package_plan, package_price } = req.body;
-        // let existing = await Membership.findOne({ $or: [{ phone }, { email }] });
-        // if (existing) return res.status(400).json({ message: 'Member with same email or phone number already exists!' });
+        // Find or create Member, and update details if changed
+        let member = await Member.findOne({ email, phone });
+        if (!member) {
+            member = new Member({ name, email, phone, address, pincode });
+        } else {
+            // Update member details if they have changed
+            let updated = false;
+            if (member.name !== name) { member.name = name; updated = true; }
+            if (member.address !== address) { member.address = address; updated = true; }
+            if (member.pincode !== pincode) { member.pincode = pincode; updated = true; }
+            if (member.email !== email) { member.email = email; updated = true; }
+            if (member.phone !== phone) { member.phone = phone; updated = true; }
+        }
+        await member.save();
 
         // Generate a unique membership_id: LMT-YYYY-<random 6 chars>
         function generateUniqueMembershipId() {
@@ -27,10 +40,7 @@ exports.createMembership = async (req, res) => {
         }
 
         const membership = new Membership({
-            name,
-            phone,
-            email,
-            address,
+            member: member._id,
             membership_id: uniqueMembershipId,
             function_date,
             pincode,
