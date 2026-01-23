@@ -336,7 +336,7 @@ exports.handleStripeWebhook = (req, res) => {
         event = stripe.webhooks.constructEvent(
             req.body,
             sig,
-            process.env.STRIPE_WEBHOOK_SECRET
+            process.env.STRIPE_WEBHOOK_SECRET_FOR_MEMBERSHIP
         );
     } catch (err) {
         console.error('Webhook signature error:', err.message);
