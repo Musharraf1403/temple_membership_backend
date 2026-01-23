@@ -1,4 +1,5 @@
 const Donation = require('../models/Donation');
+const Member = require('../models/Member');
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_SECRET);
 const sendEmail = require('../utils/sendEmail');
@@ -30,29 +31,38 @@ exports.handleStripeDonationWebhook = (req, res) => {
       const { name, email, phone, message } = session.metadata || {};
       const amount = session.amount_total ? session.amount_total / 100 : 0;
 
-      // Save or update donation as paid
+      // Only update existing Donation, do not create Member
       const transaction_details = JSON.stringify({
         session: session.id,
         payment_intent: session.payment_intent || null,
       });
-      await Donation.create({
-        name,
-        email,
-        phone,
-        amount,
-        message,
-        date: new Date(),
-        payment_status: 'Completed',
-        payment_mode: 'card',
-        transaction_details
-      });
+      // Try to find the donation by email, amount, and payment_status Pending
+      let donation = await Donation.findOneAndUpdate(
+        { email, amount, payment_status: 'Pending' },
+        {
+          payment_status: 'Completed',
+          payment_mode: 'card',
+          transaction_details,
+          date: new Date()
+        },
+        { new: true }
+      );
+      if (!donation) {
+        console.error('Donation not found for email:', email, 'amount:', amount);
+        return;
+      }
 
       // Send a thank you email to the donor
       if (email) {
         const subject = 'Thank you for your donation!';
-        const text = `Dear ${name || 'Donor'},\n\nThank you for your generous donation of $${amount} on ${new Date().toLocaleDateString()}.\n\nTransaction ID: ${session.id}\n\nYour support is greatly appreciated by Liverpool Murugan Temple.\n\nMay Lord Murugan bless you and your family.\n\nWith gratitude,\nLiverpool Murugan Temple`;
+        const text = `Dear ${donation.name || 'Donor'},\n\nThank you for your generous donation of $${amount} on ${new Date().toLocaleDateString()}.\n\nTransaction ID: ${session.id}\n\nYour support is greatly appreciated by Liverpool Murugan Temple.\n\nMay Lord Murugan bless you and your family.\n\nWith gratitude,\nLiverpool Murugan Temple`;
         try {
-          await sendEmail(email, subject, text);
+          const mailResult = await sendEmail(email, subject, text);
+          if (!mailResult) {
+            console.error('Donation thank you email failed to send (sendEmail returned false)');
+          } else {
+            console.log('Donation thank you email sent to', email);
+          }
         } catch (emailErr) {
           console.error('Donation thank you email failed:', emailErr.message);
         }
