@@ -4,7 +4,7 @@ const mandalaabhishekamController = require('../controllers/mandalaabhishekamCon
 
 
 // List all event registrations (with optional filters)
-router.get('/registrations', mandalaabhishekamController.getRegistrations);
+router.get('/', mandalaabhishekamController.getRegistrations);
 
 // Register for an event day (with payment)
 router.post('/', mandalaabhishekamController.registerForEvent);
