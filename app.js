@@ -9,6 +9,7 @@ const cors = require('cors');
 
 const donationRoutes = require('./routes/donation');
 const mandalaabhishekamRoutes = require('./routes/mandalaabhishekam');
+const sessionRoutes = require('./routes/session');
 
 const app = express();
 
@@ -31,10 +32,9 @@ app.use(cors());
 // Define Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/membership', membershipRoutes);
-
-
 app.use('/api/donations', donationRoutes);
 app.use('/api/mandalaabhishekam', mandalaabhishekamRoutes);
+app.use('/api/session', sessionRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

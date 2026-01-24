@@ -63,9 +63,9 @@ exports.createMembership = async (req, res) => {
             mode: 'payment',
             line_items: [{ price_data: priceData, quantity: 1 }],
             customer_email: email,
-            metadata: { membershipId: membership._id.toString(), package_plan: package_plan || '' },
-            success_url: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/payment-cancel?membership_id=${membership._id.toString()}&session_id={CHECKOUT_SESSION_ID}`
+            metadata: { memberId: member._id.toString()},
+            success_url: `${process.env.FRONTEND_URL || 'http://localhost:4200/'}payment-success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:4200/'}payment-cancel?membership_id=${membership._id.toString()}&session_id={CHECKOUT_SESSION_ID}`
         });
 
         return res.status(200).json({ url: session.url, sessionId: session.id });
@@ -180,50 +180,6 @@ exports.getBlockedDates = async (req, res) => {
     }
 }
 
-// Get session and transaction details by Stripe session ID
-exports.getSessionDetails = async (req, res) => {
-    try {
-        const { sessionId } = req.params;
-        if (!sessionId) return res.status(400).json({ message: 'Session ID required' });
-
-        // Retrieve Stripe session
-        const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ['payment_intent', 'customer'] });
-
-        // Find membership by metadata
-        const membershipId = session.metadata && session.metadata.membershipId;
-        let memberData = null;
-        if (membershipId) {
-            memberData = await Membership.findById(membershipId).lean();
-        }
-
-        // Prepare transaction details response
-        const transactionDetails = {
-            sessionId: session.id,
-            status: session.payment_status,
-            amount: session.amount_total ? session.amount_total / 100 : 0,
-            currency: session.currency,
-            customerEmail: session.customer_email,
-            paymentIntent: session.payment_intent ? session.payment_intent.id : null,
-            paymentStatus: session.payment_intent ? session.payment_intent.status : null,
-            created: new Date(session.created * 1000).toISOString(),
-            member: memberData ? {
-                _id: memberData._id,
-                name: memberData.name,
-                email: memberData.email,
-                membership_id: memberData.membership_id,
-                approved: memberData.approved,
-                payment_status: memberData.payment_status,
-                approval_date: memberData.approval_date,
-                expiry_date: memberData.expiry_date
-            } : null
-        };
-
-        return res.status(200).json(transactionDetails);
-    } catch (error) {
-        console.error('getSessionDetails error:', error);
-        return res.status(500).json({ message: error.message || String(error) });
-    }
-}
 
 // Get pending membership by email or membershipId
 exports.getPendingMembership = async (req, res) => {
