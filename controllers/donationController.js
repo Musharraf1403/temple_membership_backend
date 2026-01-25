@@ -47,8 +47,8 @@ exports.createDonation = async (req, res) => {
             line_items: [{ price_data: priceData, quantity: 1 }],
             customer_email: email,
             metadata: { memberId: member._id.toString() },
-            success_url: `${process.env.FRONTEND_URL || 'http://localhost:4200/'}donation-success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:4200/'}donation-cancel?session_id={CHECKOUT_SESSION_ID}`
+            success_url: `${process.env.FRONTEND_URL || 'http://localhost:4200/'}payment-success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:4200/'}payment-cancel?session_id={CHECKOUT_SESSION_ID}`
         });
 
         res.status(200).json({ url: session.url, sessionId: session.id });

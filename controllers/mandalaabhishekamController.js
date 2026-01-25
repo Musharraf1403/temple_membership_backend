@@ -98,8 +98,8 @@ exports.registerForEvent = async (req, res) => {
                 registrationId: registration._id.toString(),
                 memberId: member._id.toString()
             },
-            success_url: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/mandalaabhishekam-success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:4200'}/mandalaabhishekam-cancel?registration_id=${registration._id.toString()}&session_id={CHECKOUT_SESSION_ID}`
+            success_url: `${process.env.FRONTEND_URL || 'http://localhost:4200/'}payment-success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:4200/'}payment-cancel?session_id={CHECKOUT_SESSION_ID}`
         });
         res.status(200).json({ url: session.url, sessionId: session.id });
     } catch (err) {
